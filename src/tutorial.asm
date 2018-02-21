@@ -323,10 +323,12 @@ StartPressed:
 ReadStartDone:
 
 ReadUp:
-	LDA controller1
+	LDA controller1_pressed
 	AND #%00001000
 	BEQ ReadUpDone
 UpPressed:
+	LDA #%11111000
+	STA entities+Entity::yvel
 ReadUpDone:
 
 ReadDown:
@@ -383,17 +385,34 @@ processplayerremovexv:
 	DEC entities+Entity::xvel		; decrease xvel back to zero
 processplayerxvdone:
 
-	;LDA entities+Entity::yvel
-	;CLC
-	;ADC entities+Entity::ypos
-	;STA entities+Entity::ypos
-	;LDA entities+Entity::yvel
-	;BEQ processplayervdone
-	;BPL processplayerremoveyv
-	;INC entities+Entity::yvel
-	;JMP processplayervdone
-processplayerremoveyv:
-	;DEC entities+Entity::yvel
+	LDA entities+Entity::yvel
+	CLC
+	ADC entities+Entity::ypos
+	STA entities+Entity::ypos		; update the ypos based on the velocity
+
+	CLC
+	CMP #$C8						; gonna do some cheesy 'floor' stuff here (todo: replace with collision)
+	BCC applygravity				; if negative (y pos < $C8), jump to applying gravity
+	
+	LDA entities+Entity::type		; flip the ground bit to positive
+	ORA #%1000000
+	STA entities+Entity::type
+
+	LDA #$00
+	STA entities+Entity::yvel		; set the velocity to 0
+	LDA #$C8
+	STA entities+Entity::ypos		; set the height to the floor ($C8)
+
+	JMP processplayervdone
+
+applygravity:
+
+	LDA entities+Entity::type
+	AND #%1000000 
+	BEQ processplayervdone
+
+	INC entities+Entity::yvel
+
 processplayervdone:
 	RTS
 
