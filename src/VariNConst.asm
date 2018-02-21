@@ -75,10 +75,10 @@ TOTALENTITIES = .sizeof(Entity) * MAXENTITIES
 ;------------- CONSTANTS ----------------------;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-animationFrame1 = $0C
-animationFrame2 = $18
-animationFrame3 = $24
-animationFrame4 = $30
+animationFrame1 = $24	; 1
+animationFrame2 = $27	; 19
+animationFrame3 = $70	; 20
+animationFrame4 = $73	; 38
 
 sprite_RAM = $0200
 

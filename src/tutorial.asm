@@ -343,9 +343,12 @@ ProcessController0:
 	; bit: 		7	6	5	4	3	2	1	0
 	; button:	A	B	sel	str	up	dwn	lft	rgt
 ReadA:
-	LDA controller1
+	LDA controller1_pressed
 	AND #%10000000
 	BEQ ReadADone
+APressed:
+	LDA #%11111000
+	STA entities+Entity::yvel
 ReadADone:
 
 ReadB:
@@ -367,12 +370,11 @@ StartPressed:
 ReadStartDone:
 
 ReadUp:
-	LDA controller1_pressed
+	LDA controller1
 	AND #%00001000
 	BEQ ReadUpDone
 UpPressed:
-	LDA #%11111000
-	STA entities+Entity::yvel
+
 ReadUpDone:
 
 ReadDown:
@@ -606,10 +608,10 @@ PlayerSpriteUpdate:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 player_sprites:
-	.byte $00, $01, $00, $11, %00000000, %00000000, %00000000, %00000000		; RIGHT, Frame 1 + 3
+	.byte $00, $11, $00, $11, %00000000, %00000000, %00000000, %00000000		; RIGHT, Frame 1 + 3
 	.byte $00, $01, $00, $11, %00000000, %00000000, %00000000, %00000000		; RIGHT, Frame 2
 	.byte $00, $01, $00, $11, %00000000, %00000000, %00000000, %00000000		; RIGHT, Frame 4
-	.byte $01, $00, $11, $00, %01000000, %01000000, %01000000, %01000000		; LEFT, Frame 1 + 3
+	.byte $11, $00, $11, $00, %01000000, %01000000, %01000000, %01000000		; LEFT, Frame 1 + 3
 	.byte $01, $00, $11, $00, %01000000, %01000000, %01000000, %01000000		; LEFT, Frame 2
 	.byte $01, $00, $11, $00, %01000000, %01000000, %01000000, %01000000		; LEFT, Frame 4
 
@@ -681,4 +683,4 @@ background:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .segment "CHARS"
-	.incbin "mario.chr"
+	.incbin "pixelart.chr"
