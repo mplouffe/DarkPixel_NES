@@ -91,38 +91,38 @@ LoadBackground:
 	LDX #$00
 
 	LDA #.LOBYTE(background)
-	STA backgroundLo
+	STA backgroundPtr
 	LDA #.HIBYTE(background)
-	STA backgroundHi
+	STA backgroundPtr+1
 	LDA #$C0
-	STA counterLo
+	STA counterPtr
 	LDA #$03
-	STA counterHi
+	STA counterPtr+1
 
 	LDY #$00
 LoadBackgroundLoop:
-	LDA (backgroundLo), y
+	LDA (backgroundPtr), y
 	STA $2007
-	LDA backgroundLo
+	LDA backgroundPtr
 	CLC
 	ADC #$01
-	STA backgroundLo
-	LDA backgroundHi
+	STA backgroundPtr
+	LDA backgroundPtr+1
 	ADC #$00
-	STA backgroundHi
+	STA backgroundPtr+1
 
-	LDA counterLo
+	LDA counterPtr
 	SEC
 	SBC #$01
-	STA counterLo
-	LDA counterHi
+	STA counterPtr
+	LDA counterPtr+1
 	SBC #$00
-	STA counterHi
+	STA counterPtr+1
 
-	LDA counterLo
+	LDA counterPtr
 	CMP #$00
 	BNE LoadBackgroundLoop
-	LDA counterHi
+	LDA counterPtr+1
 	CMP #$00
 	BNE LoadBackgroundLoop
 
@@ -166,7 +166,7 @@ LoadGameStateVariables:
 	LDA #%10010000   ; enable NMI, sprites from Pattern Table 0
 	STA $2000
 
-	LDA #%00010000   ; enable sprites
+	LDA #%00011000   ; enable sprites
 	STA $2001
 
 	JSR GameStateUpdate
@@ -260,7 +260,7 @@ NMIStart:
 	STA $2005
 	STA $2005
 
-	LDA #%00010110
+	LDA #%00011110
 	STA $2001
 
 	LDA #$00					; sets sleeping to zero to let the game loop

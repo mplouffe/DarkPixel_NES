@@ -33,10 +33,8 @@ playerGraphicsPtr:			.res 2
 mainPointer:				.res 2
 nmiPointer:					.res 2
 
-backgroundLo:				.res 1
-backgroundHi:				.res 1
-counterLo:					.res 1
-counterHi:					.res 1
+backgroundPtr:				.res 2
+counterPtr:					.res 2
 
 
 ;.segment "STACK"			; stack
