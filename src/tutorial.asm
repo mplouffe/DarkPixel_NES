@@ -18,6 +18,10 @@
 
 .segment "CODE"
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------- INITIALIZATION -------------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 RESET:
 	SEI        ; disable IRQs
 	CLD        ; disable decimal mode
@@ -52,6 +56,18 @@ vblankwait2:
 	BIT $2002
 	BPL vblankwait2
 
+;;;;;;;; INITIALIZE GAME STATE FOR START OF GAME AND POST RESET
+	LDA #$00
+	STA gameState
+	STA gameStateOld
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------- INITIALIZATION END ---------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------- LOADING GAME STATE 0 -------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 LoadPalettes:
 	LDA $2002
 	LDA #$3F
@@ -70,31 +86,38 @@ LoadSprites:
 	LDA #$80
 	STA sprite_RAM
 	STA sprite_RAM+3
+	STA entities+Entity::xpos
+	STA entities+Entity::ypos
+	LDA #EntityType::PlayerType
+	STA entities+Entity::type
 
-	LDA #$3A
-	STA sprite_RAM+1
-	LDA #$37
-	STA sprite_RAM+5
-	LDA #$3B
-	STA sprite_RAM+9
-	LDA #$3C
-	STA sprite_RAM+13
+	LDX #.sizeof(Entity)
+	LDA #$FF
+ClearEntities:
+	STA entities+Entity::xpos, x
+	STA entities+Entity::ypos, x
+	LDA #$00
+	STA entities+Entity::xvel, x
+	STA entities+Entity::yvel, x
+	STA entities+Entity::type, x
+	TXA
+	CLC
+	ADC #.sizeof(Entity)
+	TAX
+	CPX #TOTALENTITIES
+	BNE ClearEntities
 
 	LDA #.LOBYTE(player_sprites)
 	STA playerGraphicsPtr
 	LDA #.HIBYTE(player_sprites)
 	STA playerGraphicsPtr+1
 
+LoadGameStateVariables:
 	LDA #$00
 	STA playerDirection
 	STA animationFrame
 	STA animationCounter
 	STA sleeping
-
-	LDA #$00
-	STA gameState
-	STA gameStateOld
-	JSR GameStateUpdate
 
 	LDA #%10010000   ; enable NMI, sprites from Pattern Table 0
 	STA $2000
@@ -102,15 +125,19 @@ LoadSprites:
 	LDA #%00010000   ; enable sprites
 	STA $2001
 
+	JSR GameStateUpdate
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------- END LOADING GAME STATE 0 --------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;-------------- GAME LOOP --------------------------;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Forever:
 	INC sleeping
 loop:
-	LDA sleeping
+	LDA sleeping				; sleeping is only set to 0 by the VMI
 	BNE loop
-
 
 	LDA #$01
 	STA updatingBackground
@@ -126,8 +153,44 @@ loop:
 next:
 	LDA #$00
 	STA updatingBackground
-	INC sanityCheck
-	JMP Forever     ;infinite loop
+	JMP Forever     			; infinite loop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;-------------- GAME STATE LOADER ----------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+GameStateNMIIndirect:
+	JMP (nmiPointer)
+
+GameStateIndirect:
+	JMP (mainPointer)
+
+GameStates:
+	.word GameState0, GameState1
+
+GameStateNMIs:
+	.word GameStateNMI0, GameStateNMI1
+
+GameStateUpdate:
+	LDA gameState				; store the current game state into the old one for comparisons
+	STA gameStateOld
+	ASL A						; multiply by 2 (cause each address is 2 bytes so the index is whatever state number * 2?)
+	TAX
+
+	LDA GameStates,x			; load the game state from the table
+	STA mainPointer
+	LDA GameStates+1,x
+	STA mainPointer+1
+
+	LDA GameStateNMIs,x			; load the NMI from the table
+	STA nmiPointer
+	LDA GameStateNMIs+1,x
+	STA nmiPointer+1
+	RTS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------- END GAME STATE LOADER -------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;-------------- GAME STATE ENGINE ----------------;
@@ -209,42 +272,7 @@ ReadControllerLoop:
 ;------------ STROBE CONTROLLER END --------------;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;-------------- GAME STATE LOADER ----------------;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-GameStateNMIIndirect:
-	JMP (nmiPointer)
-
-GameStateIndirect:
-	JMP (mainPointer)
-
-GameStates:
-	.word GameState0, GameState1
-
-GameStateNMIs:
-	.word GameStateNMI0, GameStateNMI1
-
-GameStateUpdate:
-	LDA gameState				; store the current game state into the old one for comparisons
-	STA gameStateOld
-	ASL A						; multiply by 2 (not sure why)
-	TAX
-
-	LDA GameStates,x			; load the game state from the table
-	STA mainPointer
-	LDA GameStates+1,x
-	STA mainPointer+1
-
-	LDA GameStateNMIs,x			; load the NMI from the table
-	STA nmiPointer
-	LDA GameStateNMIs+1,x
-	STA nmiPointer+1
-	RTS
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;------------- END GAME STATE LOADER -------------;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;------------ GAME STATE 0 (PLAYING) -------------;
@@ -256,16 +284,17 @@ GameState0:
 	STA $2003
 
 	JSR ProcessController0
-	JSR UpdateSprite
+	JSR UpdatePlayer
+	JSR UpdateMetaSprite
 	JSR PlayerAnimation
 	JSR PlayerSpriteLoading
 	RTS
 
-;;;;;;;;;; NMI
+;;;;;;;;;;;;;;;;;;;;;; NMI ;;;;;;;;;;;;;;;;;;;;;;;;;
 GameStateNMI0:
 	RTS
 
-;;;;;;;;; CONTROLLER HANDLING
+;;;;;;;;;;; CONTROLLER HANDLING ;;;;;;;;;;;;;;;;;;;;;
 ProcessController0:
 	; bit: 		7	6	5	4	3	2	1	0
 	; button:	A	B	sel	str	up	dwn	lft	rgt
@@ -298,10 +327,6 @@ ReadUp:
 	AND #%00001000
 	BEQ ReadUpDone
 UpPressed:
-	LDA sprite_RAM
-	SEC
-	SBC #$01
-	STA sprite_RAM
 ReadUpDone:
 
 ReadDown:
@@ -309,10 +334,6 @@ ReadDown:
 	AND #%00000100
 	BEQ ReadDownDone
 DownPressed:
-	LDA sprite_RAM
-	CLC
-	ADC #$01
-	STA sprite_RAM
 ReadDownDone:
 
 ReadLeft:
@@ -320,10 +341,8 @@ ReadLeft:
 	AND #%00000010
 	BEQ ReadLeftDone
 LeftPressed:
-	LDA sprite_RAM+3
-	SEC
-	SBC #$01
-	STA sprite_RAM+3
+	DEC entities+Entity::xvel
+	DEC entities+Entity::xvel
 	LDA playerDirection
 	CMP #$01
 	BEQ ReadLeftDone
@@ -337,10 +356,8 @@ ReadRight:
 	AND #%00000001
 	BEQ ReadRightDone
 RightPressed:
-	LDA sprite_RAM+3
-	CLC
-	ADC #$01
-	STA sprite_RAM+3
+	INC entities+Entity::xvel
+	INC entities+Entity::xvel
 	LDA playerDirection
 	BEQ ReadRightDone
 
@@ -349,6 +366,36 @@ RightPressed:
 ReadRightDone:
 	RTS
 
+;;;;;;;;;; UPDATE PLAYER ;;;;;;;;;;;;;;;;;;;;;;;
+
+UpdatePlayer:
+	LDA entities+Entity::xvel
+	CLC
+	ADC entities+Entity::xpos
+	STA entities+Entity::xpos		; add the xvel to the xpos, then save it back into xpos
+
+	LDA entities+Entity::xvel		; load the current xvel
+	BEQ processplayerxvdone			; if it's zero, done with player xvel
+	BPL processplayerremovexv		; if it's positive, jump to where it will be decremented
+	INC entities+Entity::xvel		; if it's not positive, increase it back to zero
+	JMP processplayerxvdone
+processplayerremovexv:
+	DEC entities+Entity::xvel		; decrease xvel back to zero
+processplayerxvdone:
+
+	;LDA entities+Entity::yvel
+	;CLC
+	;ADC entities+Entity::ypos
+	;STA entities+Entity::ypos
+	;LDA entities+Entity::yvel
+	;BEQ processplayervdone
+	;BPL processplayerremoveyv
+	;INC entities+Entity::yvel
+	;JMP processplayervdone
+processplayerremoveyv:
+	;DEC entities+Entity::yvel
+processplayervdone:
+	RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;---------------- GAME STATE 0 END ---------------;
@@ -386,16 +433,18 @@ GameStateNMI1:
 
 ; SPRITE MOVEMENT
 
-UpdateSprite:
+UpdateMetaSprite:
 	INC animationCounter
-	LDA sprite_RAM
+	LDA entities+Entity::ypos
+	STA sprite_RAM
 	STA sprite_RAM+4
 	CLC
 	ADC #$08
 	STA sprite_RAM+8
 	STA sprite_RAM+12
 
-	LDA sprite_RAM+3
+	LDA entities+Entity::xpos
+	STA sprite_RAM+3
 	STA sprite_RAM+11
 	CLC
 	ADC #$08
@@ -509,6 +558,7 @@ NM_right:
 	.byte $00, $08, $10
 NM_left:
 	.byte $18, $20, $28
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

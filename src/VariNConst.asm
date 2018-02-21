@@ -1,5 +1,26 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------- DATA STRUCTURES ----------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.scope EntityType
+	NoEntity = 0
+	PlayerType = 1
+	Death = 2
+.endscope
+
+.struct Entity
+	xvel .byte
+	xpos .byte
+	yvel .byte
+	ypos .byte
+	type .byte
+.endstruct
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------ END DATA STRUCTURES -------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;------------- VARIABLES ----------------------;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .segment "STARTUP"
@@ -19,7 +40,7 @@ nmiPointer:					.res 2
 
 ;.segment "SOUND"			; sound
 
-;.segment "VARS"				; other variables
+.segment "DATA"				; other variables
 
 controller1:				.res 1
 controller1_old:			.res 1
@@ -34,7 +55,9 @@ gameState:					.res 2
 gameStateOld:				.res 1
 sleeping:					.res 1
 
-
+MAXENTITIES = 5
+entities:					.res .sizeof(Entity) * MAXENTITIES
+TOTALENTITIES = .sizeof(Entity) * MAXENTITIES
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,3 +77,9 @@ sprite_RAM = $0200
 
 mainGameState = $00
 pauseState = $01
+
+playerMovement = $02
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------- END CONSTANTS ------------------;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
