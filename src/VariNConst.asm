@@ -33,6 +33,11 @@ playerGraphicsPtr:			.res 2
 mainPointer:				.res 2
 nmiPointer:					.res 2
 
+backgroundLo:				.res 1
+backgroundHi:				.res 1
+counterLo:					.res 1
+counterHi:					.res 1
+
 
 ;.segment "STACK"			; stack
 
@@ -54,6 +59,8 @@ playerDirection:			.res 1
 gameState:					.res 2
 gameStateOld:				.res 1
 sleeping:					.res 1
+
+
 
 MAXENTITIES = 5
 entities:					.res .sizeof(Entity) * MAXENTITIES
