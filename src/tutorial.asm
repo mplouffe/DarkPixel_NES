@@ -57,7 +57,7 @@ vblankwait2:
 	BPL vblankwait2
 
 ;;;;;;;; INITIALIZE GAME STATE FOR START OF GAME AND POST RESET
-	LDA #$00
+	LDA GameState::Gameplay
 	STA gameState
 	STA gameStateOld
 
@@ -365,7 +365,7 @@ StartPressed:
 	LDA gameState
 	STA gameState+1
 
-	LDA #pauseState
+	LDA #GameState::Paused
 	STA gameState	
 ReadStartDone:
 
@@ -418,16 +418,46 @@ ReadRightDone:
 
 UpdatePlayer:
 	LDA entities+Entity::xvel
+	BEQ processplayerxvdone			; if the velocity is zero, get the fuck outta here
+	BPL processplayerremovexv		; if the velocity is positive, branch to the reduction area
+	SEC								
+	SBC #MAX_NH_VELO				; set carry and subtract the max negative velocity
+	BVC skipnxeor					; if V is 0, N eor V = N, otherwise N eor V = N eor 1
+	EOR #$80
+skipnxeor:
+	BPL reloadnxvelocity
+	LDA #MAX_NH_VELO
+	STA entities+Entity::xvel
+	JMP skipxnvelocitycap
+reloadnxvelocity:
+	LDA entities+Entity::xvel
+skipxnvelocitycap:
+	SEC
+	ROR
+	SEC
+	ROR
 	CLC
 	ADC entities+Entity::xpos
 	STA entities+Entity::xpos		; add the xvel to the xpos, then save it back into xpos
 
-	LDA entities+Entity::xvel		; load the current xvel
-	BEQ processplayerxvdone			; if it's zero, done with player xvel
-	BPL processplayerremovexv		; if it's positive, jump to where it will be decremented
 	INC entities+Entity::xvel		; if it's not positive, increase it back to zero
 	JMP processplayerxvdone
+
 processplayerremovexv:
+	CMP #MAX_H_VELO
+	BEQ skipforcedxvelocity
+	BCC skipforcedxvelocity
+	LDA #MAX_H_VELO
+	STA entities+Entity::xvel
+skipforcedxvelocity:
+	CLC
+	ROR
+	CLC
+	ROR
+	CLC
+	ADC entities+Entity::xpos
+	STA entities+Entity::xpos
+
 	DEC entities+Entity::xvel		; decrease xvel back to zero
 processplayerxvdone:
 

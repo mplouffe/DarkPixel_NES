@@ -8,6 +8,11 @@
 	Death = 2
 .endscope
 
+.scope GameState
+	Gameplay 	= 0
+	Paused 		= 1
+.endscope
+
 .struct Entity
 	xvel .byte
 	xpos .byte
@@ -63,6 +68,8 @@ sleeping:					.res 1
 MAXENTITIES = 5
 entities:					.res .sizeof(Entity) * MAXENTITIES
 TOTALENTITIES = .sizeof(Entity) * MAXENTITIES
+MAX_H_VELO = 16
+MAX_NH_VELO = 240
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -79,9 +86,6 @@ animationFrame3 = $70	; 20
 animationFrame4 = $73	; 38
 
 sprite_RAM = $0200
-
-mainGameState = $00
-pauseState = $01
 
 playerMovement = $02
 
