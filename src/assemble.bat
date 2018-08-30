@@ -1,3 +1,3 @@
-ca65.exe tutorial.asm
-ld65.exe tutorial.o -o tutorial.nes -t nes
+ca65.exe darkpixel.asm
+ld65.exe darkpixel.o -o darkpixel.nes -t nes
 pause

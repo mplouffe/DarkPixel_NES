@@ -256,8 +256,9 @@ NMIStart:
 
 	JSR GameStateNMIIndirect
 
-	LDA #$00
+	LDA scroll
 	STA $2005
+	LDA #$00
 	STA $2005
 
 	LDA #%00011110

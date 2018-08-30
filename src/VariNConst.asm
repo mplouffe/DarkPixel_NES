@@ -62,6 +62,7 @@ playerDirection:			.res 1
 gameState:					.res 2
 gameStateOld:				.res 1
 sleeping:					.res 1
+scroll:						.res 1
 
 
 
